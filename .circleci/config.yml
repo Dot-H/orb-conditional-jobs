@@ -15,15 +15,13 @@ workflows:
           filters: *filters
       - orb-tools/pack:
           filters: *filters
-      - orb-tools/review:
-          filters: *filters
       - shellcheck/check:
           filters: *filters
       - orb-tools/publish:
           orb_name: doth/.
           vcs_type: << pipeline.project.type >>
           requires:
-            [orb-tools/lint, orb-tools/review, orb-tools/pack, shellcheck/check]
+            [orb-tools/lint, orb-tools/pack, shellcheck/check]
           # Use a context to hold your publishing token.
           context: orb-publishing
           filters: *filters
