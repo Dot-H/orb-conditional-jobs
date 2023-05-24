@@ -55,7 +55,6 @@ def move_job_to_skiped_workflow(config_yaml: dict, job_name: str):
         for idx, job_object in enumerate(workflow_jobs):
             job_object = as_matching_job(job_object, job_name)
             if job_object is None:
-                print(f"{workflow_name} does not contain job {job_name}: skipping")
                 continue
 
             # Update its body so that it waits for an approval
@@ -88,11 +87,14 @@ def main():
     with open(input_config_path, 'r') as config_file:
         print(f'parsing {input_config_path}')
         config_yaml = yaml.safe_load(config_file)
-        print(f'transforming the jobs {jobs} as workflows to manually trigger')
+        print(f'updating the {jobs} so that they wait for approval')
         update_config(config_yaml, jobs)
 
     with open(output_config_path, 'w') as file:
         yaml.dump(config_yaml, file)
+
+    print(open(output_config_path, 'r').read())
+
 
 if __name__ == '__main__':
     main()

@@ -20,4 +20,5 @@ steps:
         OUTPUT_CONFIG_PATH: <<parameters.output-config-path>>
         JOBS_LIST: <<parameters.jobs-to-transform>>
       name: Transform jobs
-      command: <<include(scripts/transform-jobs.py)>>
+      shell: /usr/bin/env python3
+      command: <<include(scripts/patch_workflows_jobs.py)>>
