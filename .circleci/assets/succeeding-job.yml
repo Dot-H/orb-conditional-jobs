@@ -1,0 +1,10 @@
+version: 2.1
+
+# This file contains a job always succeeding
+
+jobs:
+  succeeding-job:
+    docker:
+        - image: cimg/base
+    steps:
+      - run: exit 0

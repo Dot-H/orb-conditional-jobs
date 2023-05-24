@@ -3,6 +3,10 @@ description: >
 # What will this command do?
 # Descriptions should be short, simple, and clear.
 parameters:
+  circleci-config-path:
+    type: string
+    default: .circleci/config.yml
+    description: Path to the circleci config to execute
   to:
     type: string
     default: "World"
@@ -10,6 +14,7 @@ parameters:
 steps:
   - run:
       environment:
+        CIRCLECI_CONFIG_PATH: <<parameters.circleci-config-path>>
         PARAM_TO: <<parameters.to>>
       name: Hello Greeting
       command: <<include(scripts/greet.sh)>>
