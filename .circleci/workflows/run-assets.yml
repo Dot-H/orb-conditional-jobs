@@ -1,0 +1,10 @@
+version: 2.1
+
+# Run both failing-job and succeeding-job
+
+workflows:
+  version: 2
+  run-succeed-and-fail:
+    jobs:
+      - succeeding-job
+      - failing-job

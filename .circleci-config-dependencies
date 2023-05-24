@@ -1,0 +1,3 @@
+.circleci/assets/failing-job.yml
+.circleci/assets/succeeding-job.yml
+.circleci/workflows/run-assets.yml
