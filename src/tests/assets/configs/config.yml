@@ -1,0 +1,27 @@
+version: 2.1
+jobs:
+  failing-job:
+    docker:
+      - image: cimg/base
+    steps:
+      - run: exit 1
+  succeeding-job:
+    docker:
+      - image: cimg/base
+    steps:
+      - run: exit 0
+workflows:
+  version: 2
+  run-succeed-and-fail:
+    jobs:
+      - succeeding-job
+      - failing-job:
+        requires:
+          - succeeding-job
+  fail:
+    jobs:
+      - failing-job
+      - failing-job
+  succeed:
+    jobs:
+      - succeeding-job
