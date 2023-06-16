@@ -59,7 +59,8 @@ def move_job_to_skiped_workflow(config_yaml: dict, job_name: str):
 
             # Update its body so that it waits for an approval
             print(f"making job {job_name} wait for an approval in workflow {workflow_name}")
-            workflow_jobs[idx] = { **job_object, "context": "global", "type": "approval" }
+            del job_object[job_name]
+            workflow_jobs[idx] = { job_name: { **job_object, "context": "global", "type": "approval" } }
 
 """
 Description:

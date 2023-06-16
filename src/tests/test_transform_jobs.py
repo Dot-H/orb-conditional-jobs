@@ -37,20 +37,20 @@ version: 2.1
 workflows:
   fail:
     jobs:
-    - context: global
-      failing-job: null
-      type: approval
-    - context: global
-      failing-job: null
-      type: approval
+    - failing-job:
+        context: global
+        type: approval
+    - failing-job:
+        context: global
+        type: approval
   run-succeed-and-fail:
     jobs:
     - succeeding-job
-    - context: global
-      failing-job: null
-      requires:
-      - succeeding-job
-      type: approval
+    - failing-job:
+        context: global
+        requires:
+        - succeeding-job
+        type: approval
   succeed:
     jobs:
     - succeeding-job
