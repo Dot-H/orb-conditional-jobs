@@ -1,0 +1,24 @@
+description: >
+  Permits to patch a job inside all the the workflows referencing it in order to make it
+  wait for an approval
+parameters:
+  circleci-config-path:
+    type: string
+    default: .circleci/config.yml
+    description: Path to the circleci config to execute
+  output-config-path:
+    type: string
+    default: .circleci/config.yml
+    description: Path to the file where the updated config should be put
+  jobs-to-transform:
+    type: string
+    description: List of jobs to transform using a comma as separator
+steps:
+  - run:
+      environment:
+        CIRCLECI_CONFIG_PATH: <<parameters.circleci-config-path>>
+        OUTPUT_CONFIG_PATH: <<parameters.output-config-path>>
+        JOBS_LIST: <<parameters.jobs-to-transform>>
+      name: Transform jobs
+      shell: /usr/bin/env python3
+      command: <<include(scripts/patch_workflows_jobs.py)>>

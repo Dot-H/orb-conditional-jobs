@@ -35,8 +35,10 @@ jobs:
           config-list-file: .circleci-config-dependencies
           output: /tmp/continuation-config.yml
           shared-config-file: .circleci/continue-shared.yml
-      - ./greet:
+      - ./workflow-job-patching:
           circleci-config-path: /tmp/continuation-config.yml
+          output-config-path: /tmp/continuation-config.yml
+          jobs-to-transform: "failing-job"
 
 workflows:
   test-deploy:
