@@ -15,8 +15,19 @@ class JobPatchingTestCases(TestCase):
 
     def test_job_patching(self):
         """
-        Will iterate on all the directories in `./assets/tests` to create a subtest which will use the
-        configs in this directory as if they were passed as argument.
+        Will iterate on all the directories in `./assets/tests` to create a subtest per directory.
+        Each subtest will:
+        - Pass the `circleci-config.yml` file as parameter
+        - Pass the `jobs-to-transform-config.yml` file as parameter
+        - Execute the job patching
+        - Ensure that the output matches the file in `output-config.yml`
+
+        So, in order to add a new test case, you'll need to:
+        1. Create a directory in `./assets/tests`
+        2. In this directory:
+          1. Add `circleci-config.yml` corresponding to the config to patch
+          2. Add `jobs-to-transform-config.yml` corresponding to the config used to patch
+          3. Add `output-config.yml` corresponding to the expected patched config
         """
         tests_dirname = os.listdir(self.TESTS_ROOT_DIRECTORY_PATH)
 
