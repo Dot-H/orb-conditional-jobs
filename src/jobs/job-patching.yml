@@ -12,11 +12,11 @@ parameters:
     type: string
     default: .circleci/config.yml
     description: Path to the file where the updated config should be put
-  jobs-to-transform:
+  jobs-to-transform-config-path:
     type: string
-    description: List of jobs to transform using a comma as separator
+    description: Path to the configuration informing how to patch the jobs
 steps:
   - workflow-job-patching:
       circleci-config-path: << parameters.circleci-config-path >>
       output-config-path: << parameters.output-config-path >>
-      jobs-to-transform: << parameters.jobs-to-transform >>
+      jobs-to-transform-config-path: << parameters.jobs-to-transform-config-path >>
