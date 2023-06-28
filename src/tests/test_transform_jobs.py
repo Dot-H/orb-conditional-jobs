@@ -10,52 +10,43 @@ def build_params(input_config_path: str, output_config_path: str, job_names: lis
         "JOBS_LIST": ','.join(job_names)
     }
 
-class TestMain(TestCase):
-    @mock.patch.dict(os.environ, build_params(
-        os.path.join(os.path.dirname(__file__), "./assets/configs/config.yml"),
-        "/tmp/test_main.yml",
-        ["failing-job"]))
-    def test_main(self):
+class JobPatchingTestCases(TestCase):
+    TESTS_ROOT_DIRECTORY_PATH: str = os.path.join(os.path.dirname(__file__), "./assets/tests")
+
+    def test_job_patching(self):
         """
-        Test that it can find and path job in simple workflow
+        Will iterate on all the directories in `./assets/tests` to create a subtest per directory.
+        Each subtest will:
+        - Pass the `circleci-config.yml` file as parameter
+        - Pass the `jobs-to-transform-config.yml` file as parameter
+        - Execute the job patching
+        - Ensure that the output matches the file in `output-config.yml`
+
+        So, in order to add a new test case, you'll need to:
+        1. Create a directory in `./assets/tests`
+        2. In this directory:
+          1. Add `circleci-config.yml` corresponding to the config to patch
+          2. Add `jobs-to-transform-config.yml` corresponding to the config used to patch
+          3. Add `output-config.yml` corresponding to the expected patched config
         """
-        patch_workflows_jobs.main()
-        self.maxDiff = None
-        self.assertEqual(open("/tmp/test_main.yml", "r").read(),
-        """jobs:
-  failing-job:
-    docker:
-    - image: cimg/base
-    steps:
-    - run: exit 1
-  succeeding-job:
-    docker:
-    - image: cimg/base
-    steps:
-    - run: exit 0
-version: 2.1
-workflows:
-  fail:
-    jobs:
-    - failing-job:
-        context: global
-        type: approval
-    - failing-job:
-        context: global
-        type: approval
-  run-succeed-and-fail:
-    jobs:
-    - succeeding-job
-    - failing-job:
-        context: global
-        requires:
-        - succeeding-job
-        type: approval
-  succeed:
-    jobs:
-    - succeeding-job
-  version: 2
-""")
+        tests_dirname = os.listdir(self.TESTS_ROOT_DIRECTORY_PATH)
+
+        for test_dirname in tests_dirname:
+            test_root_directory_path = os.path.join(self.TESTS_ROOT_DIRECTORY_PATH, test_dirname)
+            output_path = f"/tmp/test_job_patching_{test_dirname}.yml"
+
+            with self.subTest(msg=test_dirname):
+                params = build_params(
+                os.path.join(test_root_directory_path, "circleci-config.yml"),
+                output_path,
+                ["failing-job"])
+
+                with mock.patch.dict(os.environ, params):
+                    patch_workflows_jobs.main()
+                    self.maxDiff = None
+                    self.assertEqual(
+                        open(output_path, "r").read(),
+                        open(os.path.join(test_root_directory_path, "output-config.yml")).read())
 
 if __name__ == '__main__':
     main()
