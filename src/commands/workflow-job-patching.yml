@@ -10,15 +10,15 @@ parameters:
     type: string
     default: .circleci/config.yml
     description: Path to the file where the updated config should be put
-  jobs-to-transform:
+  jobs-to-transform-config-path:
     type: string
-    description: List of jobs to transform using a comma as separator
+    description: Path to the configuration informing how to patch the jobs
 steps:
   - run:
       environment:
         CIRCLECI_CONFIG_PATH: <<parameters.circleci-config-path>>
         OUTPUT_CONFIG_PATH: <<parameters.output-config-path>>
-        JOBS_LIST: <<parameters.jobs-to-transform>>
+        JOBS_TO_TRANSFORM_CONFIG_PATH: <<parameters.jobs-to-transform-config-path>>
       name: Transform jobs
       shell: /usr/bin/env python3
       command: <<include(scripts/patch_workflows_jobs.py)>>

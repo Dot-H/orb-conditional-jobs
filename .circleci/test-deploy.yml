@@ -38,7 +38,7 @@ jobs:
       - ./workflow-job-patching:
           circleci-config-path: /tmp/continuation-config.yml
           output-config-path: /tmp/continuation-config.yml
-          jobs-to-transform: "failing-job"
+          jobs-to-transform-config-path: ".circleci/test-deploy.yml"
 
 workflows:
   test-deploy:

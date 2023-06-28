@@ -26,8 +26,14 @@ Raise:
     An exception if the environment variable is unset or empty
 """
 def jobs_to_update() -> List[str]:
-    jobs_as_string = get_mandatory_env('JOBS_LIST')
-    return jobs_as_string.split(',')
+    config_path = get_mandatory_env('JOBS_TO_TRANSFORM_CONFIG_PATH')
+    print(f'opening {config_path}');
+    with open(config_path, 'r') as config_file:
+        print(f'parsing {config_file}')
+        config_yaml = yaml.safe_load(config_file)
+        jobs = config_yaml["jobs"]
+
+        return jobs.keys()
 
 def as_matching_job(job_value: Union[str, dict], searched_name: str) -> Union[dict, None]:
     if isinstance(job_value, str):

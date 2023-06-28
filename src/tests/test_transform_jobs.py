@@ -3,11 +3,11 @@ from unittest import TestCase, mock, main
 
 from scripts import patch_workflows_jobs
 
-def build_params(input_config_path: str, output_config_path: str, job_names: list[str]) -> dict:
+def build_params(input_config_path: str, output_config_path: str, jobs_to_transform_config_path: str) -> dict:
     return {
         "CIRCLECI_CONFIG_PATH": input_config_path,
         "OUTPUT_CONFIG_PATH": output_config_path,
-        "JOBS_LIST": ','.join(job_names)
+        "JOBS_TO_TRANSFORM_CONFIG_PATH": jobs_to_transform_config_path,
     }
 
 class JobPatchingTestCases(TestCase):
@@ -39,7 +39,7 @@ class JobPatchingTestCases(TestCase):
                 params = build_params(
                 os.path.join(test_root_directory_path, "circleci-config.yml"),
                 output_path,
-                ["failing-job"])
+                os.path.join(test_root_directory_path, "jobs-to-transform-config.yml"))
 
                 with mock.patch.dict(os.environ, params):
                     patch_workflows_jobs.main()
