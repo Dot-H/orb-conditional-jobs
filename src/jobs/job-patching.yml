@@ -1,6 +1,5 @@
 description: >
-  Sample description
-# What will this job do?
+  Make jobs wait for a manual trigger.
 
 executor: default
 
