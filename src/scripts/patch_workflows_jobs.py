@@ -6,6 +6,14 @@ from typing import List, Union
 
 SKIPED_WORKFLOW_NAME = "skiped-jobs"
 
+JOB_ALWAYS_SUCCEED="""
+\torb-conditional-job-succeed:
+\t\tdocker:
+\t\t- image: cimg/base
+\t\tsteps:
+\t\t- run: exit 0
+"""
+
 class JobConfig:
     def __init__(self, job_name: str, succeed_by_default: bool):
         self.job_name = job_name
@@ -46,9 +54,7 @@ def jobs_to_update() -> List[JobConfig]:
     if not isinstance(jobs, dict):
         raise Exception("expected `jobs` to be a dictionary")
 
-    job_names = jobs.keys()
-    for job_name in job_names:
-        job: dict = jobs[job_name]
+    for job_name, job in jobs.items():
         if not isinstance(job, dict):
             raise Exception("expected element in `jobs` to be a dictionary")
 
@@ -73,16 +79,16 @@ def as_matching_job(job_value: Union[str, dict], searched_name: str) -> Union[di
 Mutates the `workflows` attribute in the given config_yaml so that every workflow
 which is referencing the given job now makes it wait for a global approval
 """
-def move_job_to_skiped_workflow(config_yaml: dict, job_config: JobConfig):
+def make_job_wait_for_approval(config_yaml: dict, job_config: JobConfig):
     workflows = config_yaml["workflows"]
     for workflow_name, workflow_object in workflows.items():
         if not isinstance(workflow_object, dict):
             continue
 
 
-        # Find the job
+        nb_jobs_inserted: int = 0 # Number of jobs inserted by ourselfs
         workflow_jobs: list[dict] = workflow_object["jobs"]
-        for idx, job_object in enumerate(workflow_jobs):
+        for job_idx, job_object in enumerate(workflow_jobs):
             job_object = as_matching_job(job_object, job_config.job_name)
             if job_object is None:
                 continue
@@ -90,6 +96,8 @@ def move_job_to_skiped_workflow(config_yaml: dict, job_config: JobConfig):
             # Update its body so that it waits for an approval
             print(f"making job {job_config} wait for an approval in workflow {workflow_name}")
             del job_object[job_config]
+
+            idx = job_idx + nb_jobs_inserted
             workflow_jobs[idx] = { job_config: { **job_object, "context": "global", "type": "approval" } }
 
 """
