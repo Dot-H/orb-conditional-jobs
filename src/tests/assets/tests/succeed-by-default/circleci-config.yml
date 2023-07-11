@@ -16,13 +16,13 @@ workflows:
     jobs:
       - succeeding-job
       - failing-job:
-        requires:
+          requires:
           - succeeding-job
   fail:
     jobs:
       - failing-job
       - failing-job:
-        name: pipo
+          name: pipo
   succeed:
     jobs:
       - succeeding-job

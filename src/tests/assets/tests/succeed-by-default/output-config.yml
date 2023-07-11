@@ -1,15 +1,14 @@
-
 jobs:
-  orb-conditional-job-succeed:
-    docker:
-    - image: cimg/base
-    steps:
-    - run: exit 0
   failing-job:
     docker:
     - image: cimg/base
     steps:
     - run: exit 1
+  orb-conditional-job-succeed:
+    docker:
+    - image: cime/base
+    steps:
+    - run: exit 0
   succeeding-job:
     docker:
     - image: cimg/base
@@ -21,17 +20,16 @@ workflows:
     jobs:
     - orb-conditional-job-succeed:
         context: global
-        name: failing-job
+        name: trigger-failing-job
+    - failing-job:
+        context: global
+        type: approval
     - orb-conditional-job-succeed:
         context: global
+        name: trigger-failing-job
+    - failing-job:
+        context: global
         name: pipo
-    - failing-job:
-        context: global
-        name: trigger-failing-job
-        type: approval
-    - failing-job:
-        context: global
-        name: trigger-failing-job
         type: approval
   run-succeed-and-fail:
     jobs:
@@ -39,12 +37,12 @@ workflows:
         context: global
         type: approval
     - orb-conditional-job-succeed:
-        name: failing-job
+        context: global
+        name: trigger-failing-job
     - failing-job:
         context: global
         requires:
         - succeeding-job
-        name: trigger-failing-job
         type: approval
   succeed:
     jobs:

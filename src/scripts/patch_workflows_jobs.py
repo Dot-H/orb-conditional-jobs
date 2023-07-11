@@ -2,17 +2,19 @@
 
 import os
 import yaml
-from typing import List, Union
+from typing import List, Tuple, Union
 
 SKIPED_WORKFLOW_NAME = "skiped-jobs"
 
-JOB_ALWAYS_SUCCEED="""
-\torb-conditional-job-succeed:
-\t\tdocker:
-\t\t- image: cimg/base
-\t\tsteps:
-\t\t- run: exit 0
-"""
+JOB_ALWAYS_SUCCEEDING_NAME="orb-conditional-job-succeed"
+JOB_ALWAYS_SUCCEEDING={
+    "docker": [
+        { "image": "cime/base" },
+    ],
+    "steps": [
+        { "run": "exit 0" }
+    ],
+}
 
 class JobConfig:
     def __init__(self, job_name: str, succeed_by_default: bool):
@@ -65,14 +67,69 @@ def jobs_to_update() -> List[JobConfig]:
     return out
 
 
-def as_matching_job(job_value: Union[str, dict], searched_name: str) -> Union[dict, None]:
+"""
+Try to see if the item in the `jobs` attribute matches the searched name.
+
+Returns:
+    If it matches:
+        A tuple containing the attribute name with its content as an object
+    If it doesn't
+        None
+
+Exemple:
+    # Yaml looks like:
+    # workflows:
+    #   workflow-name:
+    #     jobs:
+    #     - not-matching
+    match_job_item("not-matching", "job-name") == None
+
+    # Yaml looks like:
+    # workflows:
+    #   workflow-name:
+    #     jobs:
+    #     - job-name
+    match_job_item("job-name", "job-name") == ("job_name", {})
+
+    # Yaml looks like:
+    # workflows:
+    #   workflow-name:
+    #     jobs:
+    #     - job-name:
+    #       context: global
+    match_job_item({"job-name": {"context": "global"}}, "job-name") == ("job-name", {"context": "global"})
+
+    # Yaml looks like:
+    # workflows:
+    #   workflow-name:
+    #     jobs:
+    #     - random-name:
+    #       context: global
+    # .     name: job-name
+    match_job_item({"random-name": {"context": "global", "name": "job-name"}}, "job-name") == ("random-name", {"context": "global", "name": "job-name"})
+"""
+def match_job_item(job_value: Union[str, dict], searched_name: str) -> Union[Tuple[str, dict], None]:
+    # Try to match
+    # jobs:
+    #   - searched_name
     if isinstance(job_value, str):
         if job_value == searched_name:
-            return { searched_name: None }
+            return (searched_name, {})
         return None
 
-    if searched_name in job_value:
-        return job_value
+    # Try to match
+    # jobs:
+    #   - name-of-a-job:
+    # .   name: searched_name
+    #
+    # OR
+    # jobs:
+    #   - searched_name:
+    # .   ...
+    for job_name, job_object in job_value.items():
+        if job_name == searched_name or job_object.get("name", "") == searched_name:
+            return (job_name, job_object)
+
     return None
 
 """
@@ -80,25 +137,35 @@ Mutates the `workflows` attribute in the given config_yaml so that every workflo
 which is referencing the given job now makes it wait for a global approval
 """
 def make_job_wait_for_approval(config_yaml: dict, job_config: JobConfig):
+    # Make the always succeeding job available
+    config_yaml["jobs"][JOB_ALWAYS_SUCCEEDING_NAME] = JOB_ALWAYS_SUCCEEDING
+
     workflows = config_yaml["workflows"]
     for workflow_name, workflow_object in workflows.items():
         if not isinstance(workflow_object, dict):
             continue
 
 
-        nb_jobs_inserted: int = 0 # Number of jobs inserted by ourselfs
-        workflow_jobs: list[dict] = workflow_object["jobs"]
-        for job_idx, job_object in enumerate(workflow_jobs):
-            job_object = as_matching_job(job_object, job_config.job_name)
-            if job_object is None:
+        updated_jobs: list[dict] = []
+        for job_item in workflow_object["jobs"]:
+            item_tuple = match_job_item(job_item, job_config.job_name)
+            if item_tuple is None:
+                updated_jobs.append(job_item)
                 continue
 
-            # Update its body so that it waits for an approval
-            print(f"making job {job_config} wait for an approval in workflow {workflow_name}")
-            del job_object[job_config]
+            item_name, item_value = item_tuple
 
-            idx = job_idx + nb_jobs_inserted
-            workflow_jobs[idx] = { job_config: { **job_object, "context": "global", "type": "approval" } }
+            new_job_name = job_config.job_name
+            if job_config.succeed_by_default:
+                print(f"making job {job_config.job_name} always succeeding in workflow {workflow_name}")
+                new_job_name = f"trigger-{job_config.job_name}"
+                updated_jobs.append({ JOB_ALWAYS_SUCCEEDING_NAME: { "context": "global", "name": f"trigger-{job_config.job_name}" } })
+
+            # Update the job so that it waits for an approval
+            print(f"making job {new_job_name} wait for an approval in workflow {workflow_name}")
+            updated_jobs.append({ item_name: { "context": "global", **item_value, "type": "approval" } })
+
+        workflow_object["jobs"] = updated_jobs
 
 """
 Description:
@@ -115,7 +182,7 @@ def update_config(config_yaml: dict, jobs_to_transform: List[JobConfig]):
         raise Exception('expected the config to have a "jobs" object at top level')
 
     for job_config in jobs_to_transform:
-        move_job_to_skiped_workflow(config_yaml, job_config)
+        make_job_wait_for_approval(config_yaml, job_config)
 
 def main():
     jobs = jobs_to_update()
@@ -124,6 +191,7 @@ def main():
     config_yaml = {}
 
     with open(input_config_path, 'r') as config_file:
+        config_yaml = yaml.safe_load(config_file)
         print(f'updating the {jobs} so that they wait for approval')
         update_config(config_yaml, jobs)
 
