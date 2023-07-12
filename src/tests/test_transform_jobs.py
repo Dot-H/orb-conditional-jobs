@@ -1,6 +1,26 @@
+"""
+**Disclaimer**:
+All the boilerplate around the `create_test_case` function is just so that vscode
+correctly discovers the tests generated from the TESTS_ROOT_DIRECTORY_PATH.
+As of the July 12th 2022, I (dot-h) could not make load_tests work with vscode.
+
+Will iterate on all the directories in `./assets/tests` to create a TestCase per directory.
+Each test case will:
+- Pass the `circleci-config.yml` file as parameter
+- Pass the `jobs-to-transform-config.yml` file as parameter
+- Execute the job patching
+- Ensure that the output matches the file in `output-config.yml`
+
+So, in order to add a new test case, you'll need to:
+1. Create a directory in `./assets/tests`
+2. In this directory:
+    1. Add `circleci-config.yml` corresponding to the config to patch
+    2. Add `jobs-to-transform-config.yml` corresponding to the config used to patch
+    3. Add `output-config.yml` corresponding to the expected patched config
+"""
 import os
-from unittest import TestCase, mock, main
-import unittest
+from os.path import dirname
+from unittest import TestCase, mock
 
 from scripts import patch_workflows_jobs
 
@@ -13,49 +33,59 @@ def build_params(input_config_path: str, output_config_path: str, jobs_to_transf
         "JOBS_TO_TRANSFORM_CONFIG_PATH": jobs_to_transform_config_path,
     }
 
-class JobPatchingTestCase(TestCase):
-    def __init__(self, test_dirname: str) -> None:
-        super().__init__(test_dirname)
-        self.test_dirname = test_dirname
-        setattr(self, test_dirname, self.runTest)
+"""
+Method which actually does the test
+"""
+def run_test(self):
+    test_root_directory_path = os.path.join(TESTS_ROOT_DIRECTORY_PATH, self.test_dirname)
+    output_path = f"/tmp/test_job_patching_{self.test_dirname}.yml"
+
+    params = build_params(
+    os.path.join(test_root_directory_path, "circleci-config.yml"),
+    output_path,
+    os.path.join(test_root_directory_path, "jobs-to-transform-config.yml"))
+
+    with mock.patch.dict(os.environ, params):
+        patch_workflows_jobs.main()
+        self.maxDiff = None
+        self.assertEqual(
+            open(output_path, "r").read(),
+            open(os.path.join(test_root_directory_path, "output-config.yml")).read())
+
+"""
+Generates a TestCase which will run a test for the given directory
+"""
+def create_test_case(dirname: str):
+    return type(dirname, (TestCase, ), {
+    # data members
+    "test_dirname": dirname,
+
+    # member functions
+    "runTest": run_test,
+})
+
+"""
+Iterates over the directories to find all the tests to create and add a
+global for each of them.
+
+So if my TEST_ROOT_DIRECTORY_PATH contains the directories 'test-1', 'test-2',
+this code will generate the globals 'test-1' and 'test-2' in this module. It
+would be equivalent to approximately hardcoding this in python:
+
+class test-1(TestCase):
+    test_dirname = 'test-1'
 
     def runTest(self):
-        test_root_directory_path = os.path.join(TESTS_ROOT_DIRECTORY_PATH, self.test_dirname)
-        output_path = f"/tmp/test_job_patching_{self.test_dirname}.yml"
+        .... # See the runTest function
 
-        with self.subTest(msg=self.test_dirname):
-            params = build_params(
-            os.path.join(test_root_directory_path, "circleci-config.yml"),
-            output_path,
-            os.path.join(test_root_directory_path, "jobs-to-transform-config.yml"))
+class test-2(TestCase):
+    test_dirname = 'test-1'
 
-            with mock.patch.dict(os.environ, params):
-                patch_workflows_jobs.main()
-                self.maxDiff = None
-                self.assertEqual(
-                    open(output_path, "r").read(),
-                    open(os.path.join(test_root_directory_path, "output-config.yml")).read())
+    def runTest(self):
+        .... # See the runTest function
+"""
+tests_dirname = os.listdir(TESTS_ROOT_DIRECTORY_PATH)
+for dirname in tests_dirname:
+    generatedClass = create_test_case(dirname)
+    globals()[generatedClass.__name__] = generatedClass
 
-def load_tests(loader, tests, pattern):
-    """
-    Will iterate on all the directories in `./assets/tests` to create a subtest per directory.
-    Each subtest will:
-    - Pass the `circleci-config.yml` file as parameter
-    - Pass the `jobs-to-transform-config.yml` file as parameter
-    - Execute the job patching
-    - Ensure that the output matches the file in `output-config.yml`
-
-    So, in order to add a new test case, you'll need to:
-    1. Create a directory in `./assets/tests`
-    2. In this directory:
-        1. Add `circleci-config.yml` corresponding to the config to patch
-        2. Add `jobs-to-transform-config.yml` corresponding to the config used to patch
-        3. Add `output-config.yml` corresponding to the expected patched config
-    """
-    tests_dirname = os.listdir(TESTS_ROOT_DIRECTORY_PATH)
-    test_suite = unittest.TestSuite()
-
-    for dirname in tests_dirname:
-        test_suite.addTest(JobPatchingTestCase(dirname))
-
-    return test_suite
