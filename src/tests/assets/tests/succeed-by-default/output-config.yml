@@ -6,7 +6,7 @@ jobs:
     - run: exit 1
   orb-conditional-job-succeed:
     docker:
-    - image: cime/base
+    - image: cimg/base
     steps:
     - run: exit 0
   succeeding-job:
