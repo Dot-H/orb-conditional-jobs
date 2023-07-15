@@ -1,0 +1,5 @@
+jobs:
+  failing-job:
+    succeed-by-default: true
+  succeeding-job:
+    succeed-by-default: false

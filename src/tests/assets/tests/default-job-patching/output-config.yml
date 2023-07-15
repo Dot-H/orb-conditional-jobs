@@ -1,0 +1,66 @@
+jobs:
+  another-failing-job:
+    docker:
+    - image: cimg/base:current
+    steps:
+    - run: exit 1
+  failing-job:
+    docker:
+    - image: cimg/base:current
+    steps:
+    - run: exit 1
+  orb-conditional-job-succeed:
+    docker:
+    - image: cimg/base:current
+    steps:
+    - run: exit 0
+  succeeding-job:
+    docker:
+    - image: cimg/base:current
+    steps:
+    - run: exit 0
+version: 2.1
+workflows:
+  fail:
+    jobs:
+    - trigger-failing-job:
+        name: trigger-failing-job
+        type: approval
+    - failing-job:
+        context: global
+        name: failing-job
+        requires:
+        - trigger-failing-job
+    - trigger-failing-job-dup1:
+        name: trigger-failing-job-dup1
+        type: approval
+    - failing-job:
+        context: global
+        name: failing-job
+        requires:
+        - trigger-failing-job-dup1
+  run-succeed-and-fail:
+    jobs:
+    - succeeding-job
+    - trigger-failing-job:
+        name: trigger-failing-job
+        requires:
+        - succeeding-job
+        type: approval
+    - failing-job:
+        context: global
+        name: failing-job
+        requires:
+        - trigger-failing-job
+  succeed:
+    jobs:
+    - succeeding-job
+    - trigger-failing-job:
+        name: trigger-failing-job
+        type: approval
+    - another-failing-job:
+        context: global
+        name: failing-job
+        requires:
+        - trigger-failing-job
+  version: 2

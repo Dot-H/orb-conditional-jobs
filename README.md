@@ -18,9 +18,9 @@ FIXME
 ```yaml
 jobs:
   first-job-name:
-    succeeded-by-default: true
+    succeed-by-default: true
   second-job-name:
-    succeeded-by-default: false
+    succeed-by-default: false
   third-job-name:
-    succeeded-by-default: true
+    succeed-by-default: true
 ```
