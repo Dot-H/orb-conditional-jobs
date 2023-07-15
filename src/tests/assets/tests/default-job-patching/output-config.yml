@@ -11,7 +11,7 @@ jobs:
     - run: exit 1
   orb-conditional-job-succeed:
     docker:
-    - image: cime/base
+    - image: cimg/base
     steps:
     - run: exit 0
   succeeding-job:
@@ -25,15 +25,18 @@ workflows:
     jobs:
     - failing-job:
         context: global
+        name: failing-job
         type: approval
     - failing-job:
         context: global
+        name: failing-job
         type: approval
   run-succeed-and-fail:
     jobs:
     - succeeding-job
     - failing-job:
         context: global
+        name: failing-job
         requires:
         - succeeding-job
         type: approval

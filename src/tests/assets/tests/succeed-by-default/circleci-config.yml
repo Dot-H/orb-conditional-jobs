@@ -21,7 +21,7 @@ workflows:
   fail:
     jobs:
       - failing-job
-      - failing-job:
+      - succeeding-job:
           name: pipo
   succeed:
     jobs:

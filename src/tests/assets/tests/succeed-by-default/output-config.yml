@@ -20,27 +20,25 @@ workflows:
     jobs:
     - orb-conditional-job-succeed:
         context: global
-        name: trigger-failing-job
+        name: failing-job
     - failing-job:
         context: global
+        name: trigger-failing-job
         type: approval
-    - orb-conditional-job-succeed:
-        context: global
-        name: trigger-failing-job
-    - failing-job:
-        context: global
+    - succeeding-job:
         name: pipo
-        type: approval
   run-succeed-and-fail:
     jobs:
     - succeeding-job:
         context: global
+        name: succeeding-job
         type: approval
     - orb-conditional-job-succeed:
         context: global
-        name: trigger-failing-job
+        name: failing-job
     - failing-job:
         context: global
+        name: trigger-failing-job
         requires:
         - succeeding-job
         type: approval
@@ -48,5 +46,6 @@ workflows:
     jobs:
     - succeeding-job:
         context: global
+        name: succeeding-job
         type: approval
   version: 2

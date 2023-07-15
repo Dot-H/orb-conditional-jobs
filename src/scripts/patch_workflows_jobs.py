@@ -127,7 +127,17 @@ def match_job_item(job_value: Union[str, dict], searched_name: str) -> Union[Tup
     #   - searched_name:
     # .   ...
     for job_name, job_object in job_value.items():
-        if job_name == searched_name or job_object.get("name", "") == searched_name:
+        name_attribute = job_object.get("name", None)
+        if name_attribute is not None:
+            if name_attribute == searched_name:
+                return (job_name, job_object)
+            else:
+                # We don't want to check the name of the original job to avoid to match:
+                # jobs:
+                #   - searched_name:
+                # .   name: another_non_matching_name
+                continue
+        elif job_name == searched_name:
             return (job_name, job_object)
 
     return None
