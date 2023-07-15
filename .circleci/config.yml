@@ -2,15 +2,29 @@ version: 2.1
 setup: true
 orbs:
   orb-tools: circleci/orb-tools@12.0
+  python: circleci/python@2.0.3
   shellcheck: circleci/shellcheck@3.1
 
 filters: &filters
   tags:
     only: /.*/
 
+jobs:
+  build-and-test: # this can be any name you choose
+    executor: python/default
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: src/scripts/requirements.txt
+      - run:
+          name: Run tests
+          command: python -m unittest discover src
+
 workflows:
   lint-pack:
     jobs:
+      - build-and-test
       - orb-tools/lint:
           filters: *filters
       - orb-tools/pack:
