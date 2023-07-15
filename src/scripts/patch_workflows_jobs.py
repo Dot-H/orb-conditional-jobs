@@ -165,15 +165,24 @@ def make_job_wait_for_approval(config_yaml: dict, job_config: JobConfig):
 
             item_name, item_value = item_tuple
 
-            new_job_name = job_config.job_name
+            running_job_name = job_config.job_name
+            trigger_job_name = f"trigger-{job_config.job_name}"
             if job_config.succeed_by_default:
                 print(f"making job {job_config.job_name} always succeeding in workflow {workflow_name}")
-                new_job_name = f"trigger-{job_config.job_name}"
+                running_job_name = f"running-{job_config.job_name}"
                 updated_jobs.append({ JOB_ALWAYS_SUCCEEDING_NAME: { "context": "global", "name": job_config.job_name } })
 
-            # Update the job so that it waits for an approval
-            print(f"making job {new_job_name} wait for an approval in workflow {workflow_name}")
-            updated_jobs.append({ item_name: { "context": "global", **item_value, "name": new_job_name, "type": "approval" } })
+            # Delete the `name` attribute from the original workflow step. This ensure that we control
+            # the name of the steps we add (such as the trigger and the running)
+            item_value.pop('name', None)
+
+            # Insert the trigger job waiting for the approval
+            print(f"insert the triggering job {trigger_job_name} which wait for an approval in workflow {workflow_name}")
+            updated_jobs.append({ trigger_job_name: { **item_value, "type": "approval" }})
+
+            # Update the job so that it waits for the trigger job to be approved
+            print(f"making job {running_job_name} wait for the approval of {trigger_job_name} in workflow {workflow_name}")
+            updated_jobs.append({ item_name: { "context": "global", **item_value, "name": running_job_name, "requires": [trigger_job_name]} })
 
         workflow_object["jobs"] = updated_jobs
 

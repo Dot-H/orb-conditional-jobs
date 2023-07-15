@@ -23,28 +23,40 @@ version: 2.1
 workflows:
   fail:
     jobs:
-    - failing-job:
-        context: global
-        name: failing-job
+    - trigger-failing-job:
         type: approval
-    - failing-job:
-        context: global
-        name: failing-job
-        type: approval
-  run-succeed-and-fail:
-    jobs:
-    - succeeding-job
     - failing-job:
         context: global
         name: failing-job
         requires:
+        - trigger-failing-job
+    - trigger-failing-job:
+        type: approval
+    - failing-job:
+        context: global
+        name: failing-job
+        requires:
+        - trigger-failing-job
+  run-succeed-and-fail:
+    jobs:
+    - succeeding-job
+    - trigger-failing-job:
+        requires:
         - succeeding-job
         type: approval
+    - failing-job:
+        context: global
+        name: failing-job
+        requires:
+        - trigger-failing-job
   succeed:
     jobs:
     - succeeding-job
+    - trigger-failing-job:
+        type: approval
     - another-failing-job:
         context: global
         name: failing-job
-        type: approval
+        requires:
+        - trigger-failing-job
   version: 2
