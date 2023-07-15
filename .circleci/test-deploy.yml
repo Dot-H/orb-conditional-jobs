@@ -7,6 +7,7 @@ orbs:
   # Reference your orb's jobs and commands below as they will exist when built.
   orb-tools: circleci/orb-tools@12.0
   # The orb definition is intentionally not included here. It will be injected into the pipeline.
+  python: circleci/python@2.0.3
   .: {}
 
 # Use this tag to ensure test jobs always run,
@@ -23,6 +24,17 @@ release-filters: &release-filters
     only: /^v[0-9]+\.[0-9]+\.[0-9]+$/
 
 jobs:
+  scripts-test:
+    executor: python/default
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: src/scripts/requirements.txt
+      - run:
+          name: Run tests
+          command: python -m unittest discover src
+
   # Create jobs to test the commands of your orbs.
   # You may want to add additional validation steps to ensure the commands are working as expected.
   command-test:
@@ -43,10 +55,14 @@ jobs:
 workflows:
   test-deploy:
     jobs:
+      - scripts-test:
+        filters: *filters
       # Make sure to include "filters: *filters" in every test job you want to run as part of your deployment.
       # Test your orb's commands in a custom job and test your orb's jobs directly as a part of this workflow.
       - command-test:
           filters: *filters
+          requires:
+            - scripts-test
       # The orb must be re-packed for publishing, and saved to the workspace.
       - orb-tools/pack:
           filters: *release-filters
