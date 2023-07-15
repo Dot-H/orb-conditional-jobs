@@ -21,31 +21,47 @@ workflows:
     - orb-conditional-job-succeed:
         context: global
         name: failing-job
-    - failing-job:
-        context: global
+    - trigger-failing-job:
         name: trigger-failing-job
         type: approval
+    - failing-job:
+        context: global
+        name: running-failing-job
+        requires:
+        - trigger-failing-job
     - succeeding-job:
         name: pipo
   run-succeed-and-fail:
     jobs:
+    - trigger-succeeding-job:
+        name: trigger-succeeding-job
+        type: approval
     - succeeding-job:
         context: global
         name: succeeding-job
-        type: approval
+        requires:
+        - trigger-succeeding-job
     - orb-conditional-job-succeed:
         context: global
         name: failing-job
-    - failing-job:
-        context: global
+    - trigger-failing-job:
         name: trigger-failing-job
         requires:
         - succeeding-job
         type: approval
+    - failing-job:
+        context: global
+        name: running-failing-job
+        requires:
+        - trigger-failing-job
   succeed:
     jobs:
+    - trigger-succeeding-job:
+        name: trigger-succeeding-job
+        type: approval
     - succeeding-job:
         context: global
         name: succeeding-job
-        type: approval
+        requires:
+        - trigger-succeeding-job
   version: 2

@@ -2,7 +2,8 @@
 
 import os
 import yaml
-from typing import List, Tuple, Union
+
+from typing import Iterable, List, Set, Tuple, Union
 
 SKIPED_WORKFLOW_NAME = "skiped-jobs"
 
@@ -16,11 +17,117 @@ JOB_ALWAYS_SUCCEEDING={
     ],
 }
 
+
+"""
+Configuration accepted by the orb to configure how a job should be patched
+"""
 class JobConfig:
     def __init__(self, job_name: str, succeed_by_default: bool):
         self.job_name = job_name
         self.succeed_by_default = succeed_by_default
 
+"""
+Parses a step in the workflow.jobs list from the circleci config
+
+Exemple:
+    # Yaml looks like:
+    # workflows:
+    #   workflow-name:
+    #     jobs:
+    #     - job-name
+    WorkflowItemNameGenerator("workflow-name", "not-matching") == {
+        "job_name" = "job-name",
+        "name" = "job-name",
+        "config" = {},
+    }
+
+    # Yaml looks like:
+    # workflows:
+    #   workflow-name:
+    #     jobs:
+    #     - job-name:
+    #       context: global
+    WorkflowItemNameGenerator("workflow-name", {"job-name": {"context": "global"}}) == {
+        "job_name" = "job-name",
+        "name" = "job-name",
+        "config" = {"context": "global"},
+    }
+
+    # Yaml looks like:
+    # workflows:
+    #   workflow-name:
+    #     jobs:
+    #     - job-name:
+    #       context: global
+    # .     name: step-name
+    WorkflowItemNameGenerator("workflow-name", {"job-name": {"context": "global", "name": "step-name"}}) == {
+        "job_name" = "job-name",
+        "name" = "step-name",
+        "config" = {"context": "global", "name": "step-name"},
+    }
+"""
+class WorkflowJobStep:
+    original: Union[dict, str]
+    job_name: str
+    name: str
+    config: dict
+
+    def __init__(self, step: Union[dict, str]):
+        self.original = step
+
+        # Try to match
+        # jobs:
+        #   - searched_name
+        if isinstance(step, str):
+            self.job_name = step
+            self.name = step
+            self.config = {}
+            return
+
+        # Sanity check on the config
+        if not isinstance(step, dict):
+            raise Exception(f"could not parse workflow step {step}: step is neither a dictionary nor a string")
+        elif len(step) > 1:
+            raise Exception(f"could not parse workflow step {step}: step is a dictionary with more than one element")
+
+        # Try to match
+        # jobs:
+        #   - name-of-a-job:
+        # .   name: searched_name
+        #
+        # OR
+        # jobs:
+        #   - searched_name:
+        # .   ...
+        for job_name, step_config in step.items():
+            self.job_name = job_name
+            self.name = step_config.get("name", job_name)
+            self.config = step_config
+
+
+
+"""
+Permits to generate new names to put in a workflow.
+
+The class will make sure to generate names which are not already in the workflow
+"""
+class WorkflowItemNameGenerator:
+    def __init__(self, workflow_name: str, job_steps: Iterable[WorkflowJobStep]):
+        self.workflow_name = workflow_name
+        self.seen_names: Set[str] = set([step.name for step in job_steps])
+
+    def new(self, base: str, prefix:str = "") -> str:
+        name = f"{prefix}-{base}"
+        i = 1
+        while name in self.seen_names:
+            suffix = f"dup{i}"
+            print(f"name {name} already present in workflow {self.workflow_name}, adding suffix {suffix}")
+            name = f"{prefix}-{base}-{suffix}"
+            i += 1
+
+        print(f"generating name {name}")
+        self.seen_names.add(name)
+        return name
 
 """
 Returns:
@@ -66,82 +173,6 @@ def jobs_to_update() -> List[JobConfig]:
 
     return out
 
-
-"""
-Try to see if the item in the `jobs` attribute matches the searched name.
-
-Returns:
-    If it matches:
-        A tuple containing the attribute name with its content as an object
-    If it doesn't
-        None
-
-Exemple:
-    # Yaml looks like:
-    # workflows:
-    #   workflow-name:
-    #     jobs:
-    #     - not-matching
-    match_job_item("not-matching", "job-name") == None
-
-    # Yaml looks like:
-    # workflows:
-    #   workflow-name:
-    #     jobs:
-    #     - job-name
-    match_job_item("job-name", "job-name") == ("job_name", {})
-
-    # Yaml looks like:
-    # workflows:
-    #   workflow-name:
-    #     jobs:
-    #     - job-name:
-    #       context: global
-    match_job_item({"job-name": {"context": "global"}}, "job-name") == ("job-name", {"context": "global"})
-
-    # Yaml looks like:
-    # workflows:
-    #   workflow-name:
-    #     jobs:
-    #     - random-name:
-    #       context: global
-    # .     name: job-name
-    match_job_item({"random-name": {"context": "global", "name": "job-name"}}, "job-name") == ("random-name", {"context": "global", "name": "job-name"})
-"""
-def match_job_item(job_value: Union[str, dict], searched_name: str) -> Union[Tuple[str, dict], None]:
-    # Try to match
-    # jobs:
-    #   - searched_name
-    if isinstance(job_value, str):
-        if job_value == searched_name:
-            return (searched_name, {})
-        return None
-
-    # Try to match
-    # jobs:
-    #   - name-of-a-job:
-    # .   name: searched_name
-    #
-    # OR
-    # jobs:
-    #   - searched_name:
-    # .   ...
-    for job_name, job_object in job_value.items():
-        name_attribute = job_object.get("name", None)
-        if name_attribute is not None:
-            if name_attribute == searched_name:
-                return (job_name, job_object)
-            else:
-                # We don't want to check the name of the original job to avoid to match:
-                # jobs:
-                #   - searched_name:
-                # .   name: another_non_matching_name
-                continue
-        elif job_name == searched_name:
-            return (job_name, job_object)
-
-    return None
-
 """
 Mutates the `workflows` attribute in the given config_yaml so that every workflow
 which is referencing the given job now makes it wait for a global approval
@@ -152,37 +183,36 @@ def make_job_wait_for_approval(config_yaml: dict, job_config: JobConfig):
 
     workflows = config_yaml["workflows"]
     for workflow_name, workflow_object in workflows.items():
+        print(f"looking at workflow {workflow_name}")
         if not isinstance(workflow_object, dict):
+            print(f"ignoring: workflow is not an object: {workflow_object}")
             continue
 
 
-        updated_jobs: list[dict] = []
-        for job_item in workflow_object["jobs"]:
-            item_tuple = match_job_item(job_item, job_config.job_name)
-            if item_tuple is None:
-                updated_jobs.append(job_item)
+        updated_jobs: List[Union[dict, str]] = []
+        workflow_job_steps: List[WorkflowJobStep] = list(map(WorkflowJobStep, workflow_object["jobs"]))
+        name_generator = WorkflowItemNameGenerator(workflow_name, workflow_job_steps)
+
+        for step in workflow_job_steps:
+            if step.name != job_config.job_name:
+                # Not the searched step
+                updated_jobs.append(step.original)
                 continue
 
-            item_name, item_value = item_tuple
-
-            running_job_name = job_config.job_name
-            trigger_job_name = f"trigger-{job_config.job_name}"
+            running_step_name = step.name
+            trigger_step_name = name_generator.new(step.name, "trigger")
             if job_config.succeed_by_default:
-                print(f"making job {job_config.job_name} always succeeding in workflow {workflow_name}")
-                running_job_name = f"running-{job_config.job_name}"
-                updated_jobs.append({ JOB_ALWAYS_SUCCEEDING_NAME: { "context": "global", "name": job_config.job_name } })
-
-            # Delete the `name` attribute from the original workflow step. This ensure that we control
-            # the name of the steps we add (such as the trigger and the running)
-            item_value.pop('name', None)
+                print(f"making step {step.name} always succeeding")
+                running_step_name = f"running-{step.name}"
+                updated_jobs.append({ JOB_ALWAYS_SUCCEEDING_NAME: { "context": "global", "name": step.name } })
 
             # Insert the trigger job waiting for the approval
-            print(f"insert the triggering job {trigger_job_name} which wait for an approval in workflow {workflow_name}")
-            updated_jobs.append({ trigger_job_name: { **item_value, "type": "approval" }})
+            print(f"insert the triggering step {trigger_step_name}")
+            updated_jobs.append({ trigger_step_name: { **step.config, "name": trigger_step_name, "type": "approval" }})
 
             # Update the job so that it waits for the trigger job to be approved
-            print(f"making job {running_job_name} wait for the approval of {trigger_job_name} in workflow {workflow_name}")
-            updated_jobs.append({ item_name: { "context": "global", **item_value, "name": running_job_name, "requires": [trigger_job_name]} })
+            print(f"making step {running_step_name} wait for the approval of {trigger_step_name}")
+            updated_jobs.append({ step.job_name: { "context": "global", **step.config, "name": running_step_name, "requires": [trigger_step_name]} })
 
         workflow_object["jobs"] = updated_jobs
 

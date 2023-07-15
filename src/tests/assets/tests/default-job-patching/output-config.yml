@@ -24,23 +24,26 @@ workflows:
   fail:
     jobs:
     - trigger-failing-job:
+        name: trigger-failing-job
         type: approval
     - failing-job:
         context: global
         name: failing-job
         requires:
         - trigger-failing-job
-    - trigger-failing-job:
+    - trigger-failing-job-dup1:
+        name: trigger-failing-job-dup1
         type: approval
     - failing-job:
         context: global
         name: failing-job
         requires:
-        - trigger-failing-job
+        - trigger-failing-job-dup1
   run-succeed-and-fail:
     jobs:
     - succeeding-job
     - trigger-failing-job:
+        name: trigger-failing-job
         requires:
         - succeeding-job
         type: approval
@@ -53,6 +56,7 @@ workflows:
     jobs:
     - succeeding-job
     - trigger-failing-job:
+        name: trigger-failing-job
         type: approval
     - another-failing-job:
         context: global
