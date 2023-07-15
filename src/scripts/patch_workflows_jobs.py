@@ -159,11 +159,11 @@ def make_job_wait_for_approval(config_yaml: dict, job_config: JobConfig):
             if job_config.succeed_by_default:
                 print(f"making job {job_config.job_name} always succeeding in workflow {workflow_name}")
                 new_job_name = f"trigger-{job_config.job_name}"
-                updated_jobs.append({ JOB_ALWAYS_SUCCEEDING_NAME: { "context": "global", "name": f"trigger-{job_config.job_name}" } })
+                updated_jobs.append({ JOB_ALWAYS_SUCCEEDING_NAME: { "context": "global", "name": job_config.job_name } })
 
             # Update the job so that it waits for an approval
             print(f"making job {new_job_name} wait for an approval in workflow {workflow_name}")
-            updated_jobs.append({ item_name: { "context": "global", **item_value, "type": "approval" } })
+            updated_jobs.append({ item_name: { "context": "global", **item_value, "name": new_job_name, "type": "approval" } })
 
         workflow_object["jobs"] = updated_jobs
 
