@@ -9,7 +9,7 @@ SKIPED_WORKFLOW_NAME = "skiped-jobs"
 JOB_ALWAYS_SUCCEEDING_NAME="orb-conditional-job-succeed"
 JOB_ALWAYS_SUCCEEDING={
     "docker": [
-        { "image": "cimg/base" },
+        { "image": "cimg/base:current" },
     ],
     "steps": [
         { "run": "exit 0" }

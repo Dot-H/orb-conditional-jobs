@@ -1,22 +1,22 @@
 jobs:
   another-failing-job:
     docker:
-    - image: cimg/base
+    - image: cimg/base:current
     steps:
     - run: exit 1
   failing-job:
     docker:
-    - image: cimg/base
+    - image: cimg/base:current
     steps:
     - run: exit 1
   orb-conditional-job-succeed:
     docker:
-    - image: cimg/base
+    - image: cimg/base:current
     steps:
     - run: exit 0
   succeeding-job:
     docker:
-    - image: cimg/base
+    - image: cimg/base:current
     steps:
     - run: exit 0
 version: 2.1
