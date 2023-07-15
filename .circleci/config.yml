@@ -1,34 +1,50 @@
+jobs:
+  another-failing-job:
+    docker:
+    - image: cimg/base:current
+    steps:
+    - run: exit 1
+  failing-job:
+    docker:
+    - image: cimg/base:current
+    steps:
+    - run: exit 1
+  orb-conditional-job-succeed:
+    docker:
+    - image: cimg/base:current
+    steps:
+    - run: exit 0
+  succeeding-job:
+    docker:
+    - image: cimg/base:current
+    steps:
+    - run: exit 0
 version: 2.1
-setup: true
-orbs:
-  orb-tools: circleci/orb-tools@12.0
-  shellcheck: circleci/shellcheck@3.1
-
-filters: &filters
-  tags:
-    only: /.*/
-
 workflows:
-  lint-pack:
+  fail:
     jobs:
-      - orb-tools/lint:
-          filters: *filters
-      - orb-tools/pack:
-          filters: *filters
-      - shellcheck/check:
-          filters: *filters
-      - orb-tools/publish:
-          orb_name: doth/conditional-jobs
-          vcs_type: << pipeline.project.type >>
-          requires:
-            [orb-tools/lint, orb-tools/pack, shellcheck/check]
-          # Use a context to hold your publishing token.
-          context: orb-publishing
-          filters: *filters
-      # Triggers the next workflow in the Orb Development Kit.
-      - orb-tools/continue:
-          pipeline_number: << pipeline.number >>
-          vcs_type: << pipeline.project.type >>
-          orb_name: .
-          requires: [orb-tools/publish]
-          filters: *filters
+    - failing-job:
+        context: global
+        name: failing-job
+        type: approval
+    - failing-job:
+        context: global
+        name: failing-job
+        type: approval
+  run-succeed-and-fail:
+    jobs:
+    - succeeding-job
+    - failing-job:
+        context: global
+        name: failing-job
+        requires:
+        - succeeding-job
+        type: approval
+  succeed:
+    jobs:
+    - succeeding-job
+    - another-failing-job:
+        context: global
+        name: failing-job
+        type: approval
+  version: 2
