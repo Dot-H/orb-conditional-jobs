@@ -23,6 +23,7 @@ from os.path import dirname
 from unittest import TestCase, mock
 
 from scripts import patch_workflows_jobs
+from scripts.condition import ChangedFiles
 
 TESTS_ROOT_DIRECTORY_PATH: str = os.path.join(os.path.dirname(__file__), "./assets/tests")
 
@@ -31,6 +32,7 @@ def build_params(input_config_path: str, output_config_path: str, jobs_to_transf
         "CIRCLECI_CONFIG_PATH": input_config_path,
         "OUTPUT_CONFIG_PATH": output_config_path,
         "JOBS_TO_TRANSFORM_CONFIG_PATH": jobs_to_transform_config_path,
+        "CIRCLE_SHA1": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
     }
 
 """
@@ -45,12 +47,14 @@ def run_test(self):
     output_path,
     os.path.join(test_root_directory_path, "jobs-to-transform-config.yml"))
 
-    with mock.patch.dict(os.environ, params):
-        patch_workflows_jobs.main()
-        self.maxDiff = None
-        self.assertEqual(
-            open(output_path, "r").read(),
-            open(os.path.join(test_root_directory_path, "output-config.yml")).read())
+    with mock.patch.object(ChangedFiles, 'changed_files') as changed_files_method:
+        changed_files_method.return_value = ['.circleci/pipo.yml', 'src/app/poupip.go']
+        with mock.patch.dict(os.environ, params):
+            patch_workflows_jobs.main()
+            self.maxDiff = None
+            self.assertEqual(
+                open(output_path, "r").read(),
+                open(os.path.join(test_root_directory_path, "output-config.yml")).read())
 
 """
 Generates a TestCase which will run a test for the given directory

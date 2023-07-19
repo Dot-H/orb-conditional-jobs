@@ -5,6 +5,8 @@ import yaml
 
 from typing import Iterable, List, Set, Tuple, Union
 
+from scripts.condition import test_condition
+
 SKIPED_WORKFLOW_NAME = "skiped-jobs"
 
 JOB_ALWAYS_SUCCEEDING_NAME="orb-conditional-job-succeed"
@@ -22,9 +24,10 @@ JOB_ALWAYS_SUCCEEDING={
 Configuration accepted by the orb to configure how a job should be patched
 """
 class JobConfig:
-    def __init__(self, job_name: str, succeed_by_default: bool):
+    def __init__(self, job_name: str, succeed_by_default: bool, condition_file_path: Union[str, None]):
         self.job_name = job_name
         self.succeed_by_default = succeed_by_default
+        self.has_condition_passed = test_condition(condition_file_path) if condition_file_path is not None else True
 
 """
 Parses a step in the workflow.jobs list from the circleci config
@@ -169,7 +172,8 @@ def jobs_to_update() -> List[JobConfig]:
 
         out.append(JobConfig(
             job_name=job_name,
-            succeed_by_default=job.get('succeed-by-default', False)))
+            succeed_by_default=job.get('succeed-by-default', False),
+            condition_file_path=job.get('condition', None)))
 
     return out
 
@@ -231,7 +235,8 @@ def update_config(config_yaml: dict, jobs_to_transform: List[JobConfig]):
         raise Exception('expected the config to have a "jobs" object at top level')
 
     for job_config in jobs_to_transform:
-        make_job_wait_for_approval(config_yaml, job_config)
+        if job_config.has_condition_passed:
+            make_job_wait_for_approval(config_yaml, job_config)
 
 def main():
     jobs = jobs_to_update()

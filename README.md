@@ -22,12 +22,13 @@ jobs:
     # The `test-backend` will succeed by default and you will have a `trigger-test-backend`
     # which will wait for an approval.
     succeed-by-default: true # required
-    condition: .circleci/conditional-jobs-conditions/test-backend.yml
+    # Tells the command that this patch should only apply when a condition is
+    # fullfilled
+    condition: .circleci/conditional-jobs-conditions/test-backend.yml # optional
   check-packages-security:
     # The `test-backend` step will wait for you to manually trigger the `trigger-test-backend`
     # to run
     succeed-by-default: false
-    condition: .circleci/conditional-jobs-conditions/check-packages-security.yml
   test-frontend:
     succeed-by-default: true
     condition: .circleci/conditional-jobs-conditions/test-frontend.yml
@@ -39,19 +40,13 @@ changed-files:
     # The revision to compare the current one against for the purpose of determining changed files.
     base-revision: main # optional (default: main)
     # The regex to apply on the changed files path
-    regex: src/apps/backend # required
-```
-
-**.circleci/conditional-jobs-conditions/check-packages-security.yml**:
-```yaml
-changed-files:
-    # The regex to apply on the changed files path
-    regex: src/go.sum # required
+    # Syntax is https://docs.python.org/fr/3/library/re.html#regular-expression-syntax
+    regex: ^src/apps/backend # required
 ```
 
 **.circleci/conditional-jobs-conditions/test-frontend.yml**:
 ```yaml
 changed-files:
     # The regex to apply on the changed files path
-    regex: src/apps/front # required
+    regex: ^src/apps/front # required
 ```
