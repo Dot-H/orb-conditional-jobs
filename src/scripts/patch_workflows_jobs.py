@@ -3,7 +3,7 @@
 import os
 import yaml
 
-from typing import Iterable, List, Set, Tuple, Union
+from typing import Iterable, List, Set, Union
 
 from scripts.condition import test_condition
 
