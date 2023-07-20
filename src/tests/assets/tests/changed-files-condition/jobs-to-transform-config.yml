@@ -1,0 +1,7 @@
+jobs:
+  failing-job:
+    succeed-by-default: true
+    condition: src/tests/assets/tests/changed-files-condition/conditional-jobs-condition/failing-job.yml
+  succeeding-job:
+    succeed-by-default: false
+    condition: src/tests/assets/tests/changed-files-condition/conditional-jobs-condition/succeeding-job.yml

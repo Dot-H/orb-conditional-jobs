@@ -19,6 +19,12 @@ steps:
         CIRCLECI_CONFIG_PATH: <<parameters.circleci-config-path>>
         OUTPUT_CONFIG_PATH: <<parameters.output-config-path>>
         JOBS_TO_TRANSFORM_CONFIG_PATH: <<parameters.jobs-to-transform-config-path>>
+        # CircleCI does not support importing more than one file in the command. So we need to
+        # trick a little bit here
+        PYTHON_REQUIREMENTS_TXT: <<include(scripts/requirements.txt)>>
+        GIT_PYTHON_SCRIPT: <<include(scripts/git.py)>>
+        CONDITION_PYTHON_SCRIPT: <<include(scripts/condition.py)>>
+        PATCH_PYTHON_SCRIPT: <<include(scripts/patch_workflows_jobs.py)>>
       name: Transform jobs
-      shell: /usr/bin/env python3
-      command: <<include(scripts/patch_workflows_jobs.py)>>
+      shell: /usr/bin/env bash
+      command: <<include(scripts/bundle_and_run_scripts.bash)>>
